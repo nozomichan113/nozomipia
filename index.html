@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>東海大冒険 イラスト素材</title>
+  <title>のぞみの共有ページ</title>
 
   <style>
     body {
@@ -12,11 +12,10 @@
       background: #f5f7fa;
       margin: 0;
       padding: 30px 15px;
-      text-align: center;
     }
 
     .box {
-      max-width: 700px;
+      max-width: 800px;
       margin: 0 auto;
       background: white;
       padding: 30px 20px;
@@ -25,45 +24,68 @@
     }
 
     h1 {
+      text-align: center;
       margin-top: 0;
       font-size: 26px;
     }
 
+    .description {
+      text-align: center;
+      color: #666;
+      margin-bottom: 30px;
+    }
+
     .item {
-      margin-top: 30px;
+      margin-top: 20px;
       padding: 20px;
       background: #f8fafc;
       border-radius: 16px;
+      text-align: center;
     }
 
     .item h2 {
-      font-size: 18px;
+      font-size: 17px;
+      word-break: break-all;
       margin-top: 0;
     }
 
     .preview {
       width: 100%;
-      max-width: 600px;
-      height: auto;
+      max-width: 650px;
+      max-height: 500px;
+      object-fit: contain;
       border-radius: 12px;
       display: block;
       margin: 15px auto;
+      background: white;
     }
 
     .download {
       display: inline-block;
       margin-top: 10px;
-      padding: 14px 24px;
+      padding: 13px 22px;
       background: #333;
       color: white;
       text-decoration: none;
       border-radius: 10px;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: bold;
     }
 
     .download:hover {
       opacity: 0.8;
+    }
+
+    .loading {
+      text-align: center;
+      color: #777;
+      padding: 30px;
+    }
+
+    .error {
+      text-align: center;
+      color: #d33;
+      padding: 20px;
     }
   </style>
 </head>
@@ -72,55 +94,158 @@
 
   <div class="box">
 
-    <h1>🎨 東海大冒険 イラスト素材</h1>
+    <h1>📁 のぞみの共有ページ</h1>
 
-    <p>必要な画像をタップしてダウンロードできます。</p>
+    <p class="description">
+      GitHubに追加したファイルが自動的に表示されます。
+    </p>
 
-
-    <!-- 画像① -->
-    <div class="item">
-
-      <h2>① タイトルロゴ・東海大冒険</h2>
-
-      <img
-        class="preview"
-        src="4F959904-D24C-4589-9D5E-88AC2DD0ABCC.png"
-        alt="東海大冒険 タイトルロゴ"
-      >
-
-      <a
-        class="download"
-        href="4F959904-D24C-4589-9D5E-88AC2DD0ABCC.png"
-        download
-      >
-        📥 この画像をダウンロード
-      </a>
-
-    </div>
-
-
-    <!-- 画像② -->
-    <div class="item">
-
-      <h2>② 東海地方イラスト素材</h2>
-
-      <img
-        class="preview"
-        src="A6B011BB-260A-407C-B771-AC3A4A6A5930.png"
-        alt="東海地方イラスト素材"
-      >
-
-      <a
-        class="download"
-        href="A6B011BB-260A-407C-B771-AC3A4A6A5930.png"
-        download
-      >
-        📥 この画像をダウンロード
-      </a>
-
+    <div id="files">
+      <div class="loading">
+        📂 ファイルを読み込んでいます……
+      </div>
     </div>
 
   </div>
+
+
+<script>
+
+  // GitHubのリポジトリ
+  const owner = "nozomichan113";
+  const repo = "nozomipia";
+  const branch = "main";
+
+
+  // GitHubからファイル一覧を取得
+  async function loadFiles() {
+
+    const container = document.getElementById("files");
+
+    try {
+
+      const apiUrl =
+        `https://api.github.com/repos/${owner}/${repo}/contents/?ref=${branch}`;
+
+      const response = await fetch(apiUrl);
+
+      if (!response.ok) {
+        throw new Error("GitHubからファイルを取得できませんでした。");
+      }
+
+      const files = await response.json();
+
+
+      // index.html自身は表示しない
+      const displayFiles = files
+        .filter(file => file.name !== "index.html")
+        .filter(file => file.type === "file");
+
+
+      // 名前順に並べる
+      displayFiles.sort((a, b) =>
+        a.name.localeCompare(b.name, "ja")
+      );
+
+
+      container.innerHTML = "";
+
+
+      if (displayFiles.length === 0) {
+
+        container.innerHTML =
+          `<div class="loading">まだファイルがありません。</div>`;
+
+        return;
+      }
+
+
+      // ファイルを1つずつ表示
+      displayFiles.forEach(file => {
+
+        const item = document.createElement("div");
+        item.className = "item";
+
+
+        const title = document.createElement("h2");
+        title.textContent = file.name;
+
+        item.appendChild(title);
+
+
+        // 画像の場合
+        if (isImage(file.name)) {
+
+          const img = document.createElement("img");
+
+          img.className = "preview";
+          img.src = file.download_url;
+          img.alt = file.name;
+
+          item.appendChild(img);
+        }
+
+
+        // ダウンロードボタン
+        const link = document.createElement("a");
+
+        link.className = "download";
+        link.href = file.download_url;
+        link.target = "_blank";
+        link.rel = "noopener";
+
+        if (isImage(file.name)) {
+          link.textContent = "📥 この画像を開く・保存";
+        } else {
+          link.textContent = "📥 このファイルをダウンロード";
+        }
+
+        item.appendChild(link);
+
+
+        container.appendChild(item);
+
+      });
+
+    }
+
+    catch (error) {
+
+      container.innerHTML = `
+        <div class="error">
+          ⚠️ ファイルを読み込めませんでした。<br><br>
+          ページを再読み込みしてください。
+        </div>
+      `;
+
+      console.error(error);
+    }
+
+  }
+
+
+  // 画像かどうか判定
+  function isImage(filename) {
+
+    const extensions = [
+      ".png",
+      ".jpg",
+      ".jpeg",
+      ".gif",
+      ".webp"
+    ];
+
+    return extensions.some(ext =>
+      filename.toLowerCase().endsWith(ext)
+    );
+
+  }
+
+
+  // 実行
+  loadFiles();
+
+</script>
 
 </body>
 </html>
