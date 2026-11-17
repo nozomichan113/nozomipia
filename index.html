@@ -1,281 +1,250 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ファイル共有ページ</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <title>のぞみの共有ページ</title>
 
-<style>
-* { box-sizing: border-box; }
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Yu Gothic", sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      padding: 30px 15px;
+    }
 
-body {
-  font-family: sans-serif;
-  background: #f4f7fb;
-  color: #333;
-  margin: 0;
-  padding: 20px;
-}
+    .box {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px 20px;
+      border-radius: 20px;
+      box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+    }
 
-.container {
-  max-width: 750px;
-  margin: auto;
-}
+    h1 {
+      text-align: center;
+      margin-top: 0;
+      font-size: 26px;
+    }
 
-h1 {
-  color: #315f91;
-  text-align: center;
-}
+    .description {
+      text-align: center;
+      color: #666;
+      margin-bottom: 30px;
+    }
 
-.upload-area {
-  background: white;
-  border-radius: 14px;
-  padding: 24px;
-  text-align: center;
-  margin: 24px 0;
-}
+    .item {
+      margin-top: 20px;
+      padding: 20px;
+      background: #f8fafc;
+      border-radius: 16px;
+      text-align: center;
+    }
 
-.upload-button {
-  display: inline-block;
-  background: #315f91;
-  color: white;
-  padding: 13px 24px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: bold;
-}
+    .item h2 {
+      font-size: 17px;
+      word-break: break-all;
+      margin-top: 0;
+    }
 
-#fileInput { display: none; }
+    .preview {
+      width: 100%;
+      max-width: 650px;
+      max-height: 500px;
+      object-fit: contain;
+      border-radius: 12px;
+      display: block;
+      margin: 15px auto;
+      background: white;
+    }
 
-#status {
-  text-align: center;
-  margin: 12px 0;
-  color: #315f91;
-  font-size: 14px;
-}
+    .download {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 13px 22px;
+      background: #333;
+      color: white;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: bold;
+    }
 
-.file {
-  background: white;
-  padding: 15px;
-  border-radius: 10px;
-  margin: 12px 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
+    .download:hover {
+      opacity: 0.8;
+    }
 
-.file-info {
-  flex: 1;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
+    .loading {
+      text-align: center;
+      color: #777;
+      padding: 30px;
+    }
 
-.file-info a {
-  color: #315f91;
-  text-decoration: none;
-  font-weight: bold;
-}
-
-.file img {
-  display: block;
-  max-width: 100%;
-  max-height: 160px;
-  margin-top: 10px;
-  border-radius: 8px;
-}
-
-.download {
-  color: #315f91;
-  text-decoration: none;
-  padding: 8px;
-}
-
-.delete {
-  border: 0;
-  background: #fff0f0;
-  color: #d64545;
-  padding: 9px 12px;
-  border-radius: 7px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.refresh {
-  display: block;
-  margin: 15px auto;
-  padding: 10px 18px;
-  border: 0;
-  border-radius: 8px;
-  background: #e4edf8;
-  color: #315f91;
-}
-
-</style>
+    .error {
+      text-align: center;
+      color: #d33;
+      padding: 20px;
+    }
+  </style>
 </head>
 
 <body>
-<div class="container">
 
-<h1>ファイル共有ページ</h1>
+  <div class="box">
 
-<div class="upload-area">
-  <h3>ファイルを追加</h3>
-  <p>スマホ・パソコンからファイルを添付できます。</p>
+    <h1>📁 のぞみの共有ページ</h1>
 
-  <label class="upload-button" for="fileInput">
-    ＋ ファイルを選択
-  </label>
+    <p class="description">
+      GitHubに追加したファイルが自動的に表示されます。
+    </p>
 
-  <input type="file" id="fileInput" multiple>
-  <div id="status"></div>
-</div>
+    <div id="files">
+      <div class="loading">
+        📂 ファイルを読み込んでいます……
+      </div>
+    </div>
 
-<h3>ファイル一覧</h3>
+  </div>
 
-<button class="refresh" onclick="loadFiles()">
-  ↻ 一覧を更新
-</button>
-
-<div id="files">読み込み中...</div>
-
-</div>
 
 <script>
-const SUPABASE_URL =
-  "https://yigllagzbkrcchwdxgcum.supabase.co";
 
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpZ2xsYWd6YmtyY2h3ZHhnY3VtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM2Nzk5NTMsImV4cCI6MjEwOTI1NTk1M30.O71yOOGpx6vKTBlRrNWquq7Dac263pOMSojws6REMAE";
+  // GitHubのリポジトリ
+  const owner = "nozomichan113";
+  const repo = "nozomipia";
+  const branch = "main";
 
-const BUCKET = "shared-files";
 
-const db = supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
+  // GitHubからファイル一覧を取得
+  async function loadFiles() {
 
-const status = document.getElementById("status");
-const area = document.getElementById("files");
-const input = document.getElementById("fileInput");
+    const container = document.getElementById("files");
 
-async function loadFiles() {
-  area.textContent = "読み込み中...";
+    try {
 
-  const { data, error } = await db.storage
-    .from(BUCKET)
-    .list("", {
-      limit: 100,
-      sortBy: { column: "name", order: "asc" }
-    });
+      const apiUrl =
+        `https://api.github.com/repos/${owner}/${repo}/contents/?ref=${branch}`;
 
-  if (error) {
-    area.textContent = "読み込みエラー：" + error.message;
-    return;
-  }
+      const response = await fetch(apiUrl);
 
-  area.innerHTML = "";
+      if (!response.ok) {
+        throw new Error("GitHubからファイルを取得できませんでした。");
+      }
 
-  const files = data.filter(file => file.id !== null);
+      const files = await response.json();
 
-  if (files.length === 0) {
-    area.textContent = "ファイルはありません。";
-    return;
-  }
 
-  files.forEach(file => {
-    const publicResult = db.storage
-      .from(BUCKET)
-      .getPublicUrl(file.name);
+      // index.html自身は表示しない
+      const displayFiles = files
+        .filter(file => file.name !== "index.html")
+        .filter(file => file.type === "file");
 
-    const url = publicResult.data.publicUrl;
 
-    const item = document.createElement("div");
-    item.className = "file";
+      // 名前順に並べる
+      displayFiles.sort((a, b) =>
+        a.name.localeCompare(b.name, "ja")
+      );
 
-    const info = document.createElement("div");
-    info.className = "file-info";
 
-    const link = document.createElement("a");
-    link.href = url;
-    link.target = "_blank";
-    link.textContent = file.name;
+      container.innerHTML = "";
 
-    info.appendChild(link);
 
-    if (/\.(png|jpg|jpeg|gif|webp)$/i.test(file.name)) {
-      const img = document.createElement("img");
-      img.src = url;
-      img.alt = file.name;
-      info.appendChild(img);
-    }
+      if (displayFiles.length === 0) {
 
-    const download = document.createElement("a");
-    download.href = url;
-    download.download = file.name;
-    download.className = "download";
-    download.textContent = "↓";
+        container.innerHTML =
+          `<div class="loading">まだファイルがありません。</div>`;
 
-    const del = document.createElement("button");
-    del.className = "delete";
-    del.textContent = "削除";
-
-    del.onclick = async () => {
-      if (!confirm(
-        "「" + file.name + "」を削除しますか？"
-      )) return;
-
-      del.disabled = true;
-      del.textContent = "削除中...";
-
-      const { error } = await db.storage
-        .from(BUCKET)
-        .remove([file.name]);
-
-      if (error) {
-        alert("削除できませんでした：" + error.message);
-        del.disabled = false;
-        del.textContent = "削除";
         return;
       }
 
-      await loadFiles();
-    };
 
-    item.appendChild(info);
-    item.appendChild(download);
-    item.appendChild(del);
+      // ファイルを1つずつ表示
+      displayFiles.forEach(file => {
 
-    area.appendChild(item);
-  });
-}
+        const item = document.createElement("div");
+        item.className = "item";
 
-input.addEventListener("change", async () => {
-  const selected = Array.from(input.files);
 
-  if (selected.length === 0) return;
+        const title = document.createElement("h2");
+        title.textContent = file.name;
 
-  for (const file of selected) {
-    status.textContent = file.name + " をアップロード中...";
+        item.appendChild(title);
 
-    const { error } = await db.storage
-      .from(BUCKET)
-      .upload(file.name, file, {
-        upsert: false
+
+        // 画像の場合
+        if (isImage(file.name)) {
+
+          const img = document.createElement("img");
+
+          img.className = "preview";
+          img.src = file.download_url;
+          img.alt = file.name;
+
+          item.appendChild(img);
+        }
+
+
+        // ダウンロードボタン
+        const link = document.createElement("a");
+
+        link.className = "download";
+        link.href = file.download_url;
+        link.target = "_blank";
+        link.rel = "noopener";
+
+        if (isImage(file.name)) {
+          link.textContent = "📥 この画像を開く・保存";
+        } else {
+          link.textContent = "📥 このファイルをダウンロード";
+        }
+
+        item.appendChild(link);
+
+
+        container.appendChild(item);
+
       });
 
-    if (error) {
-      alert(file.name + "：アップロード失敗\n" + error.message);
     }
+
+    catch (error) {
+
+      container.innerHTML = `
+        <div class="error">
+          ⚠️ ファイルを読み込めませんでした。<br><br>
+          ページを再読み込みしてください。
+        </div>
+      `;
+
+      console.error(error);
+    }
+
   }
 
-  status.textContent = "アップロード処理が終了しました。";
-  input.value = "";
-  await loadFiles();
-});
 
-loadFiles();
+  // 画像かどうか判定
+  function isImage(filename) {
+
+    const extensions = [
+      ".png",
+      ".jpg",
+      ".jpeg",
+      ".gif",
+      ".webp"
+    ];
+
+    return extensions.some(ext =>
+      filename.toLowerCase().endsWith(ext)
+    );
+
+  }
+
+
+  // 実行
+  loadFiles();
+
 </script>
 
 </body>
